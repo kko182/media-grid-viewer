@@ -1,10 +1,11 @@
 // ==UserScript==
 // @name         Media Grid Viewer (Alt+Shift+M)
 // @namespace    http://tampermonkey.net/
-// @version      1.7
+// @version      1.8
 // @description  Displays all images and videos on a webpage in a large thumbnail grid with full-size preview and download support. Activate with Alt+Shift+M. Middle-click or left-click opens in background if allowed.
 // @author       thehambuglar
 // @match        *://*/*
+// @run-at       document-end
 // @grant        none
 // @icon         https://attic.sh/8lgqbjcj29hir8nvb0gq9ic0cm95
 // @downloadURL  https://raw.githubusercontent.com/kko182/media-grid-viewer/main/media-grid-viewer.user.js
@@ -37,7 +38,7 @@
       bubbles: true,
       cancelable: true,
       view: window,
-      button: 1 // middle mouse button
+      button: 1
     });
 
     a.dispatchEvent(evt);
@@ -126,11 +127,16 @@
       width:100%;
       margin-top:20px;
       justify-items:center;
+      overflow:visible;
     `;
 
     media.forEach(src => {
       const wrapper = document.createElement("div");
-      wrapper.style = "position:relative;";
+      wrapper.style = `
+        position:relative;
+        overflow:visible;
+        z-index:1;
+      `;
 
       const handleClick = (e) => {
         e.preventDefault();
@@ -144,16 +150,34 @@
           width:100%;
           max-width:250px;
           cursor:pointer;
-          transition:transform 0.2s ease;
+          transition:transform 0.25s ease, box-shadow 0.25s ease;
           border-radius:4px;
+          position:relative;
+          z-index:1;
         `;
+
         img.title = "Click or middle-click to open in background tab";
         img.onclick = handleClick;
         img.onmousedown = (e) => {
           if (e.button === 1) handleClick(e);
         };
-        img.onmouseover = () => img.style.transform = "scale(1.25)";
-        img.onmouseout = () => img.style.transform = "scale(1)";
+
+        img.onmouseover = () => {
+          const parent = img.parentElement;
+          if (parent) parent.style.zIndex = "9999";
+          img.style.zIndex = "10000";
+          img.style.transform = "scale(4)";
+          img.style.boxShadow = "0 10px 30px rgba(0,0,0,0.4)";
+        };
+
+        img.onmouseout = () => {
+          const parent = img.parentElement;
+          if (parent) parent.style.zIndex = "1";
+          img.style.zIndex = "1";
+          img.style.transform = "scale(1)";
+          img.style.boxShadow = "none";
+        };
+
         wrapper.appendChild(img);
       } else if (src.match(/\.(mp4|webm|ogg)$/i)) {
         const video = document.createElement("video");
@@ -174,4 +198,3 @@
     document.body.appendChild(overlay);
   }
 })();
-
